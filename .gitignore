@@ -1,0 +1,6 @@
+
+/target
+.idea
+*.rdb
+*.aof
+redisdata/appendonlydir/appendonly.aof.manifest
