@@ -48,7 +48,6 @@ public class MetricDaoRedisZsetImplTest extends JedisDaoTestBase {
     }
 
     // Challenge #2
-    @Ignore
     @Test
     public void testSmall() {
         testInsertAndRetrieve(1);
