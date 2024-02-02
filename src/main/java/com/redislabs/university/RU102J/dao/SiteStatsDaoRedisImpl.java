@@ -92,8 +92,7 @@ public class SiteStatsDaoRedisImpl implements SiteStatsDao {
         Response<String> maxWhResponse = transaction.hget(key, SiteStats.maxWhField);
         Response<String> minWhResponse = transaction.hget(key, SiteStats.minWhField);
         Response<String> maxCapacityResponse = transaction.hget(key, SiteStats.maxCapacityField);
-        Response<String> meterReadingCountResponse = transaction.hget(key, SiteStats.countField);
-
+        
         // Execute the transaction and get the actual string values
         transaction.exec();
 
@@ -102,7 +101,7 @@ public class SiteStatsDaoRedisImpl implements SiteStatsDao {
         String maxCapacity = maxCapacityResponse.get();
 
         jedis.hincrBy(key, SiteStats.countField, 1);
-                
+
         if (maxWh == null || reading.getWhGenerated() > Double.valueOf(maxWh)) {
             jedis.hset(key, SiteStats.maxWhField, String.valueOf(reading.getWhGenerated()));
         }
