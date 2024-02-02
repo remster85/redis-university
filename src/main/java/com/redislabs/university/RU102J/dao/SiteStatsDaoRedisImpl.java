@@ -5,7 +5,9 @@ import com.redislabs.university.RU102J.api.SiteStats;
 import com.redislabs.university.RU102J.script.CompareAndUpdateScript;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.Response;
 import redis.clients.jedis.Transaction;
+import redis.clients.jedis.exceptions.JedisException;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -80,8 +82,38 @@ public class SiteStatsDaoRedisImpl implements SiteStatsDao {
 
     // Challenge #3
     private void updateOptimized(Jedis jedis, String key, MeterReading reading) {
-        // START Challenge #3
-        // END Challenge #3
+
+        // Watch the key to detect changes by other clients
+        jedis.watch(key);
+
+        // Check the current state of the key
+        Transaction transaction = jedis.multi();
+
+        Response<String> maxWhResponse = transaction.hget(key, SiteStats.maxWhField);
+        Response<String> minWhResponse = transaction.hget(key, SiteStats.minWhField);
+        Response<String> maxCapacityResponse = transaction.hget(key, SiteStats.maxCapacityField);
+        Response<String> meterReadingCountResponse = transaction.hget(key, SiteStats.countField);
+
+        // Execute the transaction and get the actual string values
+        transaction.exec();
+
+        String maxWh = maxWhResponse.get();
+        String minWh = minWhResponse.get();
+        String maxCapacity = maxCapacityResponse.get();
+
+        jedis.hincrBy(key, SiteStats.countField, 1);
+                
+        if (maxWh == null || reading.getWhGenerated() > Double.valueOf(maxWh)) {
+            jedis.hset(key, SiteStats.maxWhField, String.valueOf(reading.getWhGenerated()));
+        }
+
+        if (minWh == null || reading.getWhGenerated() < Double.valueOf(minWh)) {
+            jedis.hset(key, SiteStats.minWhField, String.valueOf(reading.getWhGenerated()));
+        }
+
+        if (maxCapacity == null || getCurrentCapacity(reading) > Double.valueOf(maxCapacity)) {
+            jedis.hset(key, SiteStats.maxCapacityField, String.valueOf(getCurrentCapacity(reading)));
+        }
     }
 
     private Double getCurrentCapacity(MeterReading reading) {
