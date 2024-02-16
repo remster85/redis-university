@@ -58,13 +58,11 @@ public class CapacityDaoRedisImpl implements CapacityDao {
     // Challenge #4
     @Override
     public Long getRank(Long siteId) {
-
-        var rank = -2L;
-        
-        String capacityRankingKey = RedisSchema.getCapacityRankingKey();
-        try (Jedis jedis = jedisPool.getResource()) {
-            rank = jedis.zrank(capacityRankingKey, siteId);
-        }
-        return rank;
+    // START Challenge #4
+    try(Jedis jedis = jedisPool.getResource()) {
+        String key = RedisSchema.getCapacityRankingKey();
+        return jedis.zrevrank(key, String.valueOf(siteId));
+    }
+    // END Challenge #4
     }
 }
