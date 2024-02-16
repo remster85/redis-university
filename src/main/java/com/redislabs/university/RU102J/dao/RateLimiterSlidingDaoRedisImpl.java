@@ -1,11 +1,16 @@
 package com.redislabs.university.RU102J.dao;
 
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.Transaction;
+import redis.clients.jedis.Pipeline;
+
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Random;
 
 public class RateLimiterSlidingDaoRedisImpl implements RateLimiter {
 
+    public static final int PAST_YEAR = 2023;
     private final JedisPool jedisPool;
     private final long windowSizeMS;
     private final long maxHits;
@@ -22,22 +27,21 @@ public class RateLimiterSlidingDaoRedisImpl implements RateLimiter {
     public void hit(String name) throws RateLimitExceededException {
         try (Jedis jedis = jedisPool.getResource()) {
             String key = getKey(name);
-            //Pipeline pipeline = jedis.pipelined();
-            Transaction transaction = jedis.multi();
 
-            String score = String.format("%d", random.nextInt(1_000_000));
-            transaction.zadd(key, score);
+            Pipeline pipeline = jedis.pipelined();
+            //Transaction transaction = jedis.multi();
+            long currentTimeMillis = System.currentTimeMillis();
+            Random random = new Random();
+            pipeline.zadd(key, currentTimeMillis, currentTimeMillis + "-" + random.nextDouble());
+            pipeline.zremrangeByScore(key, LocalDate.of(PAST_YEAR, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli() , currentTimeMillis - this.windowSizeMS);
 
-            transaction.zremrangeByScore(key, LocalDate.of(2023, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli() , System.currentTimeMillis() - this.windowSizeMS);
-           
+            // Execute the transaction and get the actual string values
+            pipeline.sync();
 
-            //pipeline.sync();
-            if (transaction.zcard(key) > maxHits) {
+            if (jedis.zcard(key) > maxHits) {
                 throw new RateLimitExceededException();
             }
 
-            // Execute the transaction and get the actual string values
-            transaction.exec();
         }
     }
 
