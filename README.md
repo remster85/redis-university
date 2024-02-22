@@ -1,5 +1,10 @@
 # RediSolar for Java
 
+Certificate
+
+[![Redis University](https://github.com/remster85/redis-university/assets/23420546/56a6d602-7d3d-488b-b072-7e819bf88062)]([http://url](https://university.redis.com/certificates/197332b2704e4c1cb2f6bd45a20c4af2))
+
+
 Introduction
 ---
 
