@@ -1,9 +1,9 @@
 CREATE MATERIALIZED VIEW unique_field_values AS
 SELECT column_name,
-       array_agg(DISTINCT column_value) AS unique_values
+       array_agg(DISTINCT value) AS unique_values
 FROM (
     SELECT column_name,
-           unnest(string_to_array(column_default, ','))::text AS column_value
+           unnest(string_to_array(trim(trailing ')' from trim(leading 'ARRAY[' from column_default)), ',')) AS value
     FROM information_schema.columns
     WHERE table_name = 'your_table_name'
     AND data_type = 'ARRAY'
@@ -11,7 +11,7 @@ FROM (
     UNION ALL
 
     SELECT column_name,
-           column_default::text AS column_value
+           column_default AS value
     FROM information_schema.columns
     WHERE table_name = 'your_table_name'
     AND data_type != 'ARRAY'
