@@ -14,10 +14,15 @@ FROM (
         UNION ALL
 
         SELECT column_name,
-               unnest(array_agg(DISTINCT column_default)) AS value
-        FROM information_schema.columns
-        WHERE table_name = 'your_table_name'
+               unnest(array_agg(DISTINCT value)) AS value
+        FROM (
+            SELECT column_name, value
+            FROM your_table_name
+            CROSS JOIN LATERAL (
+                SELECT value FROM unnest(array[<column_names>]) AS value
+            ) AS subquery
+        ) AS distinct_values
         GROUP BY column_name
     ) AS sub
-) AS subquery
+) AS final
 GROUP BY column_name;
