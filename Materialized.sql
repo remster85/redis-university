@@ -1,16 +1,23 @@
-DO
-$$
-DECLARE
-    _table_name TEXT := 'your_table_name';
-    _query TEXT;
-BEGIN
-    FOR _col IN
-        SELECT column_name
+SELECT column_name, array_agg(DISTINCT value) AS unique_values
+FROM (
+    SELECT column_name, value
+    FROM (
+        SELECT column_name, unnest(array_agg(DISTINCT column_name)) AS value
         FROM information_schema.columns
-        WHERE table_name = _table_name
-    LOOP
-        _query := 'SELECT DISTINCT ' || quote_ident(_col.column_name) || ' FROM ' || quote_ident(_table_name);
-        EXECUTE _query;
-    END LOOP;
-END
-$$;
+        WHERE table_name = 'your_table_name'
+        GROUP BY column_name
+
+        UNION ALL
+
+        SELECT column_name, value
+        FROM (
+            SELECT column_name, value
+            FROM your_table_name
+            CROSS JOIN LATERAL (
+                SELECT value FROM unnest(array[<column_names>]) AS value
+            ) AS subquery
+        ) AS distinct_values
+        GROUP BY column_name, value
+    ) AS sub
+) AS final
+GROUP BY column_name;
